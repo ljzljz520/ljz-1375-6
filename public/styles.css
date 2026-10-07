@@ -1,0 +1,59 @@
+:root { --bg:#0e1622; --card:#172231; --ink:#e8eef6; --muted:#93a4b8; --line:#26344a;
+  --ok:#2fbf71; --no:#e0524d; --unk:#d9a441; --conf:#b06ee0; --accent:#5aa9ff; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: system-ui, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background:var(--bg); color:var(--ink); }
+.topbar { display:flex; align-items:center; gap:16px; padding:12px 20px; background:#0a111c; border-bottom:1px solid var(--line); }
+.brand { font-weight:700; font-size:18px; }
+.server-time { color:var(--muted); font-size:13px; margin-left:auto; }
+.clock-banner { background:#5a3d12; color:#ffd58a; border:1px solid #8a5e1f; padding:6px 12px; border-radius:6px; font-size:13px; }
+.tabs { display:flex; flex-wrap:wrap; gap:6px; padding:10px 16px; background:#0d1826; border-bottom:1px solid var(--line); }
+.tabs button { background:transparent; color:var(--muted); border:1px solid transparent; padding:8px 14px; border-radius:8px; cursor:pointer; font-size:14px; }
+.tabs button.active { background:var(--card); color:var(--ink); border-color:var(--line); }
+main { padding:20px; max-width:1100px; margin:0 auto; }
+.tab.hidden { display:none; }
+h2 { font-size:20px; }
+.hint { color:var(--muted); font-size:14px; line-height:1.6; }
+.controls { display:flex; flex-wrap:wrap; gap:12px; align-items:end; margin:14px 0; }
+label { font-size:13px; color:var(--muted); display:flex; flex-direction:column; gap:4px; }
+input,select,button { background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:7px;
+  padding:8px 10px; font-size:14px; }
+button { cursor:pointer; }
+button:hover { border-color:var(--accent); }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-top:12px; }
+.grid4 { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; margin-top:12px; }
+.badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+.b-TRUE,.b-OK,.b-LANDING_POSSIBLE { background:rgba(47,191,113,.15); color:var(--ok); border:1px solid var(--ok); }
+.b-FALSE,.b-BLOCKED,.b-NO_LANDING { background:rgba(224,82,77,.15); color:var(--no); border:1px solid var(--no); }
+.b-UNKNOWN,.b-MIXED,.b-NO_OVERLAP { background:rgba(217,164,65,.15); color:var(--unk); border:1px solid var(--unk); }
+.b-CONFLICT { background:rgba(176,110,224,.15); color:var(--conf); border:1px solid var(--conf); }
+.b-NOT_NEEDED { background:#233; color:var(--muted); border:1px solid var(--line); }
+.verdict-big { font-size:26px; font-weight:800; margin:6px 0; }
+.checked { font-size:12px; color:var(--muted); margin-top:6px; }
+.stale { color:var(--unk); font-weight:700; }
+.seg { border-left:3px solid var(--line); padding:6px 10px; margin:6px 0; font-size:13px; background:#121c29; border-radius:0 6px 6px 0; }
+.seg.TRUE { border-color:var(--ok); } .seg.FALSE { border-color:var(--no); }
+.seg.UNKNOWN { border-color:var(--unk); } .seg.CONFLICT { border-color:var(--conf); }
+.leg { border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin:8px 0; }
+.leg h4 { margin:0 0 4px; font-size:15px; }
+.meta { color:var(--muted); font-size:12px; }
+.keeper { border:1px solid var(--line); border-radius:10px; padding:14px; margin:10px 0; background:var(--card); }
+.diff-row { display:grid; grid-template-columns:160px 1fr 1fr 60px; gap:8px; font-size:13px; padding:6px 8px; border-bottom:1px solid var(--line); }
+.diff-row.changed { background:rgba(217,164,65,.12); }
+.diff-head { color:var(--muted); font-weight:700; }
+.codebox { background:#0a111c; border:1px solid var(--line); border-radius:8px; padding:12px; white-space:pre-wrap; font-size:12px; max-height:420px; overflow:auto; }
+.disclaimer { color:var(--unk); font-size:13px; line-height:1.6; }
+.offline-strip { background:#5a3d12; color:#ffd58a; padding:10px 16px; text-align:center; font-weight:700; }
+.hidden { display:none !important; }
+h3,h4 { color:#cfe1f5; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th,td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+@media print {
+  .tabs,.controls,.topbar button,#clockBanner { display:none !important; }
+  body { background:#fff; color:#000; }
+  .card,.keeper,.leg { border-color:#999; background:#fff; color:#000; }
+  .tab.hidden { display:block !important; }
+  main { max-width:none; }
+  #printFooter { display:block !important; color:#000; }
+  .badge { border:1px solid #555; color:#000; background:#eee !important; }
+}

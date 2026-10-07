@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>灯塔旅行指南</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">🗼 灯塔旅行指南</div>
+  <div id="clockBanner" class="clock-banner hidden"></div>
+  <div class="server-time">服务器时间：<span id="serverTime">…</span></div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="plan" class="active">登岛窗口</button>
+  <button data-tab="conditions">船班/天气/潮汐/场所</button>
+  <button data-tab="routes">已审路线核对</button>
+  <button data-tab="history">守塔人历史</button>
+  <button data-tab="favorites">收藏与重连</button>
+  <button data-tab="offline">离线包</button>
+  <button data-tab="plans">预计算 vs 实时</button>
+  <button data-tab="admin">管理导入</button>
+</nav>
+
+<main>
+  <!-- 登岛综合判定 -->
+  <section id="tab-plan" class="tab active">
+    <h2>登岛窗口综合判定</h2>
+    <p class="hint">船班、天气、潮汐、场所开放是<strong>四个独立条件</strong>，必须同时成立才显示“可登岛”；任一数据不足、冲突或陈旧，结论一律保留“未知”。</p>
+    <div class="controls">
+      <label>日期 <input type="date" id="planDay"></label>
+      <button id="planGo">查询</button>
+      <button id="planFav">收藏此日计划</button>
+    </div>
+    <div id="planResult" class="card"></div>
+  </section>
+
+  <!-- 四条件明细 -->
+  <section id="tab-conditions" class="tab hidden">
+    <h2>四类条件逐段明细</h2>
+    <div class="controls">
+      <label>开始 <input type="datetime-local" id="condStart" step="900"></label>
+      <label>结束 <input type="datetime-local" id="condEnd" step="900"></label>
+      <button id="condGo">查询</button>
+    </div>
+    <div id="condResult" class="grid4"></div>
+  </section>
+
+  <!-- 路线 -->
+  <section id="tab-routes" class="tab hidden">
+    <h2>已审路线 · 时间区间求交</h2>
+    <p class="hint">只允许选择已审核路线；逐航段把“计划航段窗口”与“你选择的时间窗口”求交。临时取消只影响对应资源的航段。</p>
+    <div class="controls">
+      <label>路线 <select id="routeSelect"></select></label>
+      <label>基准日 <input type="date" id="routeDay"></label>
+      <label>你的窗口 <input type="datetime-local" id="routeWinStart" step="900"> 至 <input type="datetime-local" id="routeWinEnd" step="900"></label>
+      <button id="routeGo">核对路线</button>
+    </div>
+    <div id="routeResult" class="card"></div>
+  </section>
+
+  <!-- 历史 -->
+  <section id="tab-history" class="tab hidden">
+    <h2>守塔人历史资料</h2>
+    <p class="hint">历史事实独立成流：船班临时取消不会让这些资料失效；它们也不构成现场安全或交通保证。</p>
+    <div id="historyResult"></div>
+  </section>
+
+  <!-- 收藏 -->
+  <section id="tab-favorites" class="tab hidden">
+    <h2>收藏计划 · 重连展示变化前后</h2>
+    <p class="hint">保存时冻结快照；重新联网后按字段对比“变化前/后”，不静默覆盖。</p>
+    <button id="favRefresh">刷新列表</button>
+    <div id="favList"></div>
+  </section>
+
+  <!-- 离线包 -->
+  <section id="tab-offline" class="tab hidden">
+    <h2>离线包</h2>
+    <div class="controls">
+      <button id="packBuild">生成/更新离线包</button>
+      <label><input type="checkbox" id="offlineMode"> 模拟离线</label>
+    </div>
+    <div id="packResult" class="card"></div>
+  </section>
+
+  <!-- 预计算对比 -->
+  <section id="tab-plans" class="tab hidden">
+    <h2>后台预计算日期计划 vs 请求时组合约束</h2>
+    <div class="controls">
+      <label>日期 <input type="date" id="cmpDay"></label>
+      <button id="cmpGo">对比</button>
+      <button id="cmpRecompute">后台重算（新代次后旧计划标 stale）</button>
+    </div>
+    <div id="cmpResult" class="card"></div>
+  </section>
+
+  <!-- 管理 -->
+  <section id="tab-admin" class="tab hidden">
+    <h2>管理 API · 导入经确认公告</h2>
+    <p class="hint">仅接受 <code>status:"confirmed"</code> 的公告；重复船班通知去重，不产生新代次。令牌用 <code>X-Admin-Token</code>（默认 <code>beacon-admin-token</code>）。</p>
+    <div class="controls">
+      <label>令牌 <input id="adminToken" value="beacon-admin-token" size="16"></label>
+      <button id="adminStats">查看库状态</button>
+      <button id="adminSendDup">导入重复船班通知</button>
+      <button id="adminSendCancel">导入新临时取消(会推进代次)</button>
+      <button id="adminSendDraft">导入未确认公告(应拒绝)</button>
+    </div>
+    <pre id="adminResult" class="codebox"></pre>
+  </section>
+</main>
+
+<footer id="printFooter" class="hidden">
+  <hr>
+  <h3>资料有效期与未确定事项（打印件）</h3>
+  <div id="printMeta"></div>
+  <p class="disclaimer">本页为截至上述“资料生成时间”的缓存内容。过期离线/打印资料不代表现场安全状况，
+  也不构成船班或登岛交通保证；登岛结论以重新联网核对的船班、天气、潮汐、场所四类条件为准。</p>
+</footer>
+
+<script src="/app.js"></script>
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");</script>
+</body>
+</html>

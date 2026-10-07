@@ -1,0 +1,13 @@
+{
+  "name": "lighthouse-travel-guide",
+  "version": "1.0.0",
+  "description": "灯塔旅行指南：历史、船班、登岛窗口；多条件三值判定、区间求交、离线包与代次管理",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "seed": "node scripts/seed.js",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=18" }
+}
