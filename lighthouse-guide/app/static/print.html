@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>计划打印 · 灯塔旅行指南</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>body{background:#fff} .sheet{max-width:800px;margin:0 auto}</style>
+</head>
+<body>
+<main class="sheet">
+  <h1>灯塔旅行计划(打印件)</h1>
+  <div id="content">加载中…</div>
+  <button class="noprint" onclick="window.print()">打印</button>
+</main>
+<script src="/static/app.js"></script>
+<script>
+const pid = location.pathname.split('/').pop();
+(async () => {
+  const d = await fetchJSON('/api/print/' + pid);
+  const p = d.plan, land = d.current.landing;
+  const validity = d.validity.map(v => `<tr>
+    <td>${v.condition}</td><td>${fmt(v.last_verified_at)}</td><td>${v.generation ?? '—'}</td></tr>`).join('');
+  const und = (d.undetermined || []).map(u => `<li>${u}</li>`).join('');
+  const changes = (d.changes_since_save || []).map(c =>
+    `<tr><td>${c.what}</td><td>${c.before ?? '—'}</td><td>${c.after ?? '—'}</td></tr>`).join('');
+  document.getElementById('content').innerHTML = `
+    <section><h2>计划信息</h2>
+      <p>计划 #${p.id} · 用户 ${p.user} · 出行日期 ${p.target_date} · 路线 #${p.route_id}<br>
+      收藏于 ${fmt(p.created_at)} · 打印时间(服务器) ${fmt(d.server_time)}</p></section>
+    <section><h2>当前登岛评估</h2>
+      <div class="verdict v-${land.verdict}">${VERDICT_CN[land.verdict]}</div>
+      <p>${(land.windows || []).map(w => fmt(w.start) + ' ~ ' + fmt(w.end)).join('<br>') || '无确认窗口'}</p></section>
+    <section><h2>资料有效期(各条件最后核对时间与内容代次)</h2>
+      <table><thead><tr><th>条件</th><th>最后核对时间</th><th>内容代次</th></tr></thead>
+      <tbody>${validity}</tbody></table></section>
+    <section><h2>收藏后发生的变化</h2>
+      ${changes ? `<table><thead><tr><th>项目</th><th>变化前</th><th>变化后</th></tr></thead><tbody>${changes}</tbody></table>`
+                : '<p>无变化</p>'}</section>
+    <section><h2>未确定事项</h2>
+      ${und ? `<ul>${und}</ul>` : '<p>无</p>'}</section>
+    <section><h2>重要声明</h2>
+      <div class="disc">${d.disclaimer}</div>
+      <div class="warn">${d.offline_note}</div></section>`;
+  syncClock();
+})();
+</script>
+</body>
+</html>

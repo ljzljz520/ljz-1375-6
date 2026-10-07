@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>灯塔旅行指南 · 历史 / 船班 / 登岛窗口</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <h1>灯塔旅行指南</h1>
+  <div class="srv" id="srvtime">正在同步服务器时间…</div>
+</header>
+<nav>
+  <a href="/">指南首页</a><a href="/plan">我的计划</a>
+  <span class="muted">结论需船班/天气/潮汐/场所开放四项同时确认;任一缺失或冲突时保留「未知」。</span>
+</nav>
+<main>
+  <section id="history">
+    <h2>灯塔历史与守塔人</h2>
+    <div id="lighthouse"></div>
+    <table id="keepers"><thead><tr><th>守塔人</th><th>任期</th><th>事迹</th></tr></thead><tbody></tbody></table>
+    <div class="muted">历史资料为静态史料,不随船班取消等业务变动而失效。</div>
+  </section>
+
+  <section id="ships">
+    <h2>船班</h2>
+    <label>日期 <input type="date" id="shipDate" value="2026-10-08"></label>
+    <button onclick="loadShips()">查询</button>
+    <table id="shipTable"><thead><tr>
+      <th>航次</th><th>方向</th><th>出发</th><th>到达</th><th>状态</th><th>内容代次</th><th>最后核对时间</th>
+    </tr></thead><tbody></tbody></table>
+  </section>
+
+  <section id="landing">
+    <h2>登岛窗口</h2>
+    <label>日期 <input type="date" id="landDate" value="2026-10-08"></label>
+    <label>模式 <select id="landMode">
+      <option value="realtime">请求时实时组合</option>
+      <option value="precomputed">后台预计算</option>
+      <option value="compare">两者对比</option>
+    </select></label>
+    <button onclick="loadLanding()">评估</button>
+    <div id="landResult"></div>
+  </section>
+</main>
+<script src="/static/app.js"></script>
+<script>
+async function loadHistory() {
+  const h = await fetchJSON('/api/history');
+  document.getElementById('lighthouse').innerHTML = h.lighthouse.map(l =>
+    `<p><b>${l.name}</b>(建于 ${l.built_year} 年)<br>${l.history}</p>`).join('');
+  document.querySelector('#keepers tbody').innerHTML = h.keepers.map(k =>
+    `<tr><td>${k.name}</td><td>${k.tenure_from}–${k.tenure_to}</td><td>${k.story}</td></tr>`).join('');
+}
+async function loadShips() {
+  const d = document.getElementById('shipDate').value;
+  const r = await fetchJSON('/api/ships?date=' + d);
+  document.querySelector('#shipTable tbody').innerHTML = r.ships.map(s => `<tr>
+    <td>${s.route_code}</td><td>${s.direction === 'out' ? '进岛' : '出岛'}</td>
+    <td>${fmt(s.depart_at)}</td><td>${fmt(s.arrive_at)}</td>
+    <td>${s.status === 'cancelled' ? '<span class="badge b-bad">已取消</span>' : '<span class="badge b-ok">正常</span>'}</td>
+    <td>${s.generation}</td><td>${fmt(s.last_verified_at)}</td></tr>`).join('')
+    || '<tr><td colspan="7" class="muted">当日无船班公告数据</td></tr>';
+}
+function renderCondCards(conds) {
+  return '<div class="cards">' + Object.entries(conds).map(([k, c]) => {
+    const wins = (c.stays || c.ok || []).map(w => `${fmt(w.start)} ~ ${fmt(w.end)}`).join('<br>');
+    const bads = (c.bad || []).map(w => `不利: ${fmt(w.start)} ~ ${fmt(w.end)}`).join('<br>');
+    const canc = (c.cancelled || []).map(x => `取消: ${x.route_code}`).join('<br>');
+    return `<div class="card"><h3>${COND[k]} ${badge(c.status)}</h3>
+      <div>${wins || '<span class="muted">无有利窗口</span>'}</div>
+      ${bads ? `<div>${bads}</div>` : ''}${canc ? `<div>${canc}</div>` : ''}
+      ${(c.reasons || []).map(r => `<div class="muted">${r}</div>`).join('')}
+      <div class="muted">最后核对: ${fmt(c.last_verified_at)} | 代次: ${c.generation ?? '—'}</div></div>`;
+  }).join('') + '</div>';
+}
+function renderLanding(r, extra) {
+  const winTxt = (r.windows || []).map(w => `${fmt(w.start)} ~ ${fmt(w.end)}`).join('<br>') || '无';
+  const und = (r.undetermined || []).map(u => `<li>${u}</li>`).join('');
+  return `<div class="verdict v-${r.verdict}">${VERDICT_CN[r.verdict] || r.verdict}</div>
+    ${extra || ''}
+    <p><b>可登岛窗口:</b><br>${winTxt}</p>
+    ${renderCondCards(r.conditions)}
+    ${(r.reasons || []).length ? `<div class="warn"><b>说明:</b><br>${r.reasons.join('<br>')}</div>` : ''}
+    ${und ? `<div class="warn"><b>未确定事项:</b><ul>${und}</ul></div>` : ''}
+    <p class="muted">${r.disclaimer || ''}<br>评估时间(服务器): ${fmt(r.server_time)}</p>`;
+}
+async function loadLanding() {
+  const d = document.getElementById('landDate').value, m = document.getElementById('landMode').value;
+  const el = document.getElementById('landResult');
+  try {
+    const r = await fetchJSON(`/api/landing?date=${d}&mode=${m}`);
+    if (m === 'compare') {
+      const c = r.consistent
+        ? '<div class="warn" style="background:#dafbe1;border-color:#1a7f37">预计算与实时结果一致</div>'
+        : '<div class="disc">预计算与实时结果不一致(预计算可能已失效,以实时为准)</div>';
+      el.innerHTML = `<h3>请求时实时组合(耗时 ${r.latency_ms.realtime} ms)</h3>${renderLanding(r.realtime)}
+        <h3>后台预计算(读取耗时 ${r.latency_ms.precomputed_read} ms${r.precomputed && r.precomputed.stale ? ',已标记失效' : ''})</h3>
+        ${r.precomputed ? renderLanding({...r.precomputed, conditions: r.precomputed.conditions, undetermined: []}) : '<p class="muted">无预计算结果</p>'}
+        ${c}<p class="muted">${r.tradeoff}</p>`;
+    } else {
+      el.innerHTML = renderLanding(r, m === 'precomputed' && r.stale
+        ? '<div class="disc">该预计算结果已被新公告标记为失效,请改用实时模式</div>' : '');
+    }
+  } catch (e) { el.innerHTML = `<div class="disc">${e.message}</div>`; }
+}
+(async () => { await syncClock(); loadHistory(); loadShips(); loadLanding(); })();
+</script>
+</body>
+</html>

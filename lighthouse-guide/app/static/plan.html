@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>我的计划 · 灯塔旅行指南</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header><h1>我的出行计划</h1><div class="srv" id="srvtime">正在同步服务器时间…</div></header>
+<nav><a href="/">指南首页</a><a href="/plan">我的计划</a></nav>
+<main>
+  <section>
+    <h2>已审路线检查(时间区间求交)</h2>
+    <label>路线 <select id="routeSel"></select></label>
+    <label>日期 <input type="date" id="chkDate" value="2026-10-08"></label>
+    <button onclick="checkRoute()">检查路线</button>
+    <div id="routeInfo" class="muted"></div>
+    <div id="chkResult"></div>
+  </section>
+
+  <section>
+    <h2>收藏计划</h2>
+    <label>昵称 <input id="userName" value="旅人甲"></label>
+    <button onclick="savePlan()">收藏当前路线+日期</button>
+    <div id="planList"></div>
+  </section>
+
+  <section>
+    <h2>离线包</h2>
+    <div class="warn">离线包仅为参考快照,过期或公告代次更新后即失效;<b>不得将旧离线包描述为现场安全或交通保证</b>。</div>
+    <label>有效期(小时) <input id="ttl" type="number" value="12" style="width:60px"></label>
+    <button onclick="makeOffline()">为选中日期生成离线包</button>
+    <div id="offlineList"></div>
+  </section>
+</main>
+<script src="/static/app.js"></script>
+<script>
+let routes = [];
+async function loadRoutes() {
+  routes = await fetchJSON('/api/routes');
+  document.getElementById('routeSel').innerHTML =
+    routes.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+  document.getElementById('routeInfo').textContent =
+    routes.map(r => `${r.name}:${r.segments.map(s => s.label).join(' → ')}`).join('');
+}
+async function checkRoute() {
+  const route_id = document.getElementById('routeSel').value;
+  const date = document.getElementById('chkDate').value;
+  const r = await fetchJSON('/api/routes/check', { method: 'POST',
+    headers: {'Content-Type': 'application/json'}, body: JSON.stringify({route_id, date}) });
+  const rows = r.segments.map(s => `<tr>
+    <td>${s.seq}</td><td>${s.label}</td>
+    <td>${s.status === 'ok' ? '<span class="badge b-ok">正常</span>'
+        : s.status === 'broken' ? '<span class="badge b-bad">受影响</span>'
+        : '<span class="badge b-unk">未知</span>'}</td>
+    <td>${s.detail || ''}</td></tr>`).join('');
+  document.getElementById('chkResult').innerHTML = `
+    <div class="verdict v-${r.feasible ? 'LANDABLE' : 'NOT_LANDABLE'}">
+      ${r.feasible ? '路线可执行' : '路线受影响/存在未知,请调整'}</div>
+    <table><thead><tr><th>#</th><th>航段</th><th>状态</th><th>说明</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <p class="muted">${r.note} | 检查时间(服务器): ${fmt(r.server_time)}</p>`;
+}
+async function savePlan() {
+  const body = { user: document.getElementById('userName').value,
+                 route_id: +document.getElementById('routeSel').value,
+                 date: document.getElementById('chkDate').value };
+  await fetchJSON('/api/plans', { method: 'POST',
+    headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+  loadPlans();
+}
+async function loadPlans() {
+  const user = document.getElementById('userName').value;
+  const plans = await fetchJSON('/api/plans?user=' + encodeURIComponent(user));
+  document.getElementById('planList').innerHTML = plans.map(p => `
+    <div class="card" style="margin:8px 0">
+      <b>#${p.id}</b> ${p.target_date} · 路线 ${p.route_id} · 收藏于 ${fmt(p.created_at)}
+      · 收藏时结论: ${p.snapshot.landing.verdict}
+      <button onclick="reconnect(${p.id})">重连检查变化</button>
+      <a href="/print/${p.id}" target="_blank">打印页</a>
+      <div id="rec-${p.id}"></div>
+    </div>`).join('') || '<p class="muted">暂无收藏</p>';
+}
+async function reconnect(pid) {
+  const r = await fetchJSON(`/api/plans/${pid}/reconnect`);
+  const rows = r.changes.length ? r.changes.map(c => `<tr>
+    <td>${c.what}</td><td class="diff-b">${c.before ?? '—'}</td>
+    <td class="diff-a">${c.after ?? '—'}</td></tr>`).join('')
+    : '<tr><td colspan="3">无变化</td></tr>';
+  document.getElementById('rec-' + pid).innerHTML = `
+    <table style="margin-top:6px"><thead><tr><th>项目</th><th>变化前(收藏时)</th><th>变化后(现在)</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <p class="muted">对比时间(服务器): ${fmt(r.server_time)}</p>`;
+}
+async function makeOffline() {
+  const body = { user: document.getElementById('userName').value,
+                 date: document.getElementById('chkDate').value,
+                 ttl_hours: +document.getElementById('ttl').value };
+  const p = await fetchJSON('/api/offline', { method: 'POST',
+    headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+  const st = await fetchJSON(`/api/offline/${p.id}/status`);
+  document.getElementById('offlineList').innerHTML = `
+    <div class="card"><b>离线包 #${p.id}</b> · 日期 ${p.date} · 生成 ${fmt(p.generated_at)}
+      · 有效期至 ${fmt(p.expires_at)}<br>
+      状态: ${st.stale ? '<span class="badge b-bad">已失效</span>' : '<span class="badge b-ok">有效期内(仍仅为参考)</span>'}
+      <span class="muted">(判断以服务器时间 ${fmt(st.server_time)} 为准)</span>
+      <div class="disc">${st.warning}。${p.disclaimer}</div>
+      ${(p.undetermined || []).length ? `<div class="warn">未确定事项:<ul>${p.undetermined.map(u => `<li>${u}</li>`).join('')}</ul></div>` : ''}
+    </div>`;
+}
+(async () => { await syncClock(); await loadRoutes(); await loadPlans(); })();
+</script>
+</body>
+</html>

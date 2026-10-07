@@ -1,0 +1,30 @@
+:root { --ok:#1a7f37; --bad:#c0392b; --unk:#9a6700; --line:#d0d7de; }
+* { box-sizing: border-box; }
+body { font-family: "PingFang SC","Microsoft YaHei",sans-serif; margin:0; background:#f6f8fa; color:#1f2328; }
+header { background:#0b3d66; color:#fff; padding:14px 20px; }
+header h1 { margin:0; font-size:20px; }
+header .srv { font-size:12px; opacity:.85; margin-top:4px; }
+nav { background:#fff; border-bottom:1px solid var(--line); padding:8px 20px; }
+nav a { margin-right:16px; color:#0b3d66; text-decoration:none; }
+main { max-width:1080px; margin:18px auto; padding:0 16px; }
+section { background:#fff; border:1px solid var(--line); border-radius:8px; padding:16px; margin-bottom:16px; }
+h2 { font-size:17px; margin:0 0 10px; border-left:4px solid #0b3d66; padding-left:8px; }
+table { border-collapse:collapse; width:100%; font-size:13px; }
+th,td { border:1px solid var(--line); padding:6px 8px; text-align:left; }
+th { background:#f0f3f6; }
+.badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; color:#fff; }
+.b-ok { background:var(--ok); } .b-bad { background:var(--bad); } .b-unk { background:var(--unk); }
+.verdict { font-size:22px; font-weight:700; padding:10px 14px; border-radius:8px; margin:8px 0; }
+.v-LANDABLE { background:#dafbe1; color:var(--ok); }
+.v-NOT_LANDABLE { background:#ffebe9; color:var(--bad); }
+.v-UNKNOWN { background:#fff8c5; color:var(--unk); }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; }
+.card { border:1px solid var(--line); border-radius:8px; padding:10px; font-size:13px; }
+.card h3 { margin:0 0 6px; font-size:14px; }
+.muted { color:#57606a; font-size:12px; }
+.warn { background:#fff8c5; border:1px solid #eac54f; border-radius:6px; padding:8px 10px; font-size:13px; margin:8px 0; }
+.disc { background:#ffebe9; border:1px solid #ffb3ad; border-radius:6px; padding:8px 10px; font-size:13px; margin:8px 0; }
+button { background:#0b3d66; color:#fff; border:0; border-radius:6px; padding:6px 14px; cursor:pointer; }
+input,select { padding:5px 8px; border:1px solid var(--line); border-radius:6px; }
+.diff-b { color:var(--bad); } .diff-a { color:var(--ok); }
+@media print { nav,header .srv,button,.noprint { display:none !important; } body { background:#fff; } section { border:0; } }
